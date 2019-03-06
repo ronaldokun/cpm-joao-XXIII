@@ -1,7 +1,9 @@
-import pandas as pd
 import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname('__file__'), '..')))
+
 import datetime as dt
 import gspread  # Access and edit Google Sheets by gspread
+import pandas as pd
 
 # Module to transform gsheets to data frame
 import gspread_dataframe as gs_to_df
@@ -9,10 +11,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
 from .variables import *
+from typing import Sequence
+
 
 path = os.path.dirname(__file__)
 
-def authenticate():
+def authenticate(file: str ='../files/cpm_creds.json'):
     """
     Read the json file from google API and authenticate the access to the Google Sheets
 
@@ -28,7 +32,7 @@ def authenticate():
 
     # Configurations necessary to gspread to work
     credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        os.path.join(path, '../files/cpm_creds.json'), scope)
+        os.path.join(path, file), scope)
 
     gc = gspread.authorize(credentials)
 
@@ -36,7 +40,7 @@ def authenticate():
 
 def load_workbooks_from_drive():
     """
-    Receives: tuple of strings
+    Receives: None
 
     Authenticate the access to Google Sheets Feed
     Open all authorized Spreadsheets and puts in a list wkbs
@@ -52,122 +56,90 @@ def load_workbooks_from_drive():
 
     return planilhas
 
-def load_sheet_from_workbook(wkb, aba, col_names=None, skiprows=None, na_values=""):
+def load_sheet_from_drive(title: str)-> gspread.Spreadsheet:
+    """Load Spreadsheet object of name <title> 
+    
+    Args:
+        title (str): The Google Sheets' Name
+
+    Raises:
+        ValueError: If the Google Sheets is not found or not shared with the current user.
+    
+    Returns:
+        gspread.Spreadsheet: The Google Sheet object
     """
-    Receives:
-    wkb: Spreadsheet object (gspread)
-    aba: string - name of the worksheet to load from wkb
 
-    Returns a tuple:
+    gc = authenticate()
 
-    aba as a gspread Worksheet object
-    aba as Pandas DataFrame
+    try:
+        sh = gc.open(title=title)
+    except gspread.SpreadsheetNotFound as e:
+        raise ValueError(f"The Google Sheet {title} not found or not shared with this user. Check your Drive") from e
+
+    return sh
+
+def load_wb_from_sheet(title: str, aba: str):
+    """Load Workbook <aba> from Spreadsheet <title>
+    
+    Args:
+        title (str): The Google Sheets' Name
+        aba (str): The Workbooks' Name
+    Raises:
+        ValueError: If the Workbook is not found in the Google Sheets.
+    
+    Returns:
+        gspread.Worksheet: The Google Worksheet object
     """
+    
+    sh = load_sheet_from_drive(title=title)
 
-    wks = wkb.worksheet(aba)
+    try:
+        aba = sh.worksheet(title=aba)
+    except gspread.WorksheetNotFound as e:
+        raise ValueError(f"A aba {aba} não foi encontrada na planilha {title}. Verifique o seu drive") from e
+    
+    return aba
 
-    #col_names = [col for col in wks.row_values(1) if col != '']
+def load_df_from_sheet(title: str,aba: str, col_names: Sequence=None, skiprows: Sequence=None, na_values:Sequence=""):
+    """Load Workbook <aba> from Spreadsheet <title> and returns it as a Dataframe
+    
+    Args:
+        title (str): The Google Sheets' Name
+        col_names ([type], optional): Defaults to None. List of columns' names
+        skiprows ([type], optional): Defaults to None. List of rows to skip
+        na_values (str, optional): Defaults to "". What values in the df to consider as NaN
+    
+    Returns:
+        pandas.DataFrame: The Google Worksheet as a DataFrame
+    """
+    
+    aba = load_wb_from_sheet(title=title, aba=aba)
 
     df = gs_to_df.get_as_dataframe(
-        wks, evaluate_formulas=True,
+        aba, evaluate_formulas=True,
+        parse_dates=True,
         skiprows=skiprows, dtype=str,
         ignore=False, na_values=na_values)
 
     if col_names is not None:
-
+        l1, l2 = len(col_names), len(df.columns)
+        
+        assert l1 == l2, f"There is a mismatch between the len(col_names): {l1} and the len(columns): {l2} in the DataFrame"
         df.columns = col_names
 
-    # df.fillna("", inplace=True)
 
-    # df.replace("NaN", "", inplace=True)
 
-    # df.replace('nan', "", inplace=True)
+    return df.dropna(axis=0, how="all")
 
-    return (wks, df)
+def load_turmas(semestre=None):
 
-def consolida_teachers(dict_teachers):
+    sheets = load_workbooks_from_drive()
 
-    teachers = pd.DataFrame(columns=COLS_TEACHERS)
+    if semestre is None:
 
-    for k, (sh, df) in dict_teachers.items():
+        return {x.split('_')[-1]: sheets[x] for x in TURMAS}
 
-        print("Processing: ", k)
-
-        df = df[COLS_TEACHERS]
-
-        #df = df.assign(Turma=df.shape[0] * [k.split("_")[-1]])
-
-        teachers = teachers.append(df)
-
-    teachers = teachers[teachers["Nome"] != ""]
-
-    teachers.sort_values(by=["Turma"], inplace=True)
-
-    return teachers
-
-def consolida_alocacao(dict_alocacao):
-
-    alocacao = pd.DataFrame(columns=COLS_ALOCACAO)
-
-    for k, (sh, df) in dict_alocacao.items():
-
-        print("Processing: ", k)
-
-        dict_aloc = {}
-
-        for _, line in df.iterrows():
-
-            dict_aloc["Aula"] = line.Aula
-            dict_aloc["Data"] = line.Data
-            dict_aloc['Turma'] = k.split("_")[-1]
-
-            for nome in line[2:-1]:
-
-                if nome:
-
-                    dict_aloc["Nome"] = nome
-
-                    alocacao = alocacao.append(dict_aloc, ignore_index=True)
-
-    alocacao["Data"] = alocacao["Data"].apply(transform_date)
-
-    alocacao.sort_values(by=["Data", "Turma"], inplace=True)
-
-    return alocacao
-
-def transform_date(date, str_format="%B %d, %Y"):
-
-    return dt.datetime.strptime(str(date), str_format).date()
-
-def cria_alocacao_geral(lista_aloc):
-
-    alocacao_geral = pd.concat(lista_aloc)
-
-    cols = [col for col in alocacao_geral.columns if "Sugestão" not in col]
-
-    alocacao_geral = alocacao_geral[cols]
-
-    alocacao_geral.fillna("", inplace=True)
-
-    alocacao_geral["Data"] = alocacao_geral["Data"].apply(transform_date)
-
-    alocacao_geral.sort_values(by=["Turma"], inplace=True)
-
-    alocacao_geral.sort_values(by=["Data"], inplace=True)
-
-    return alocacao_geral
-
-def cria_agenda(alocacao, voluntarios):
-
-    agenda = pd.merge(alocacao, voluntarios, on="Nome").dropna().drop(["Turma_y", "#Aulas"], axis=1)
-
-    agenda.columns = COLS_AGENDA
-
-    agenda.sort_values(by=["Data", "Turma"], inplace=True)
-
-    agenda = agenda[COLS_AGENDA]
-
-    return agenda
+    return {k.split('_')[-1]: v  for k,v in sheets.items() if semestre in k}
 
 def salva_aba_no_drive(dataframe, planilha_drive, aba_drive, row=2, col=1, header=False, resize=False, clear=False):
 
@@ -211,29 +183,23 @@ def nomeia_cols_lista(df):
 
     return df
 
-def load_turmas(semestre=None):
-
-    if semestre is None:
-
-        return {x.split('_')[-1]: load_workbooks_from_drive()[x] for x in TURMAS}
-
-    return {k.split('_')[-1]: v  for k,v in load_workbooks_from_drive().items() if semestre in k}
-
 def carrega_listas(turmas=None):
 
     if turmas is None:
-        turmas = load_turmas()
+        turmas = TURMAS
 
-    listas = {}
+    listas = pd.DataFrame(columns=LISTA)  
 
-    for title, turma in turmas.items():
+    for turma in turmas:
 
-        lista, df = load_sheet_from_workbook(turma, 'Lista de Presença',
+        df = load_df_from_sheet(turma, 'Lista de Presença',
                                              col_names=LISTA, skiprows=[1, 2], na_values="")
 
         df = df[df.Nome != 'nan']
 
-        listas[title] = (lista, df)
+        df.Turma = turma.split("_")[-1] 
+
+        listas.append(df, ignore_index=True)
 
     return listas
 

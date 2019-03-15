@@ -1,5 +1,6 @@
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname('__file__'), '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
 
 import datetime as dt
 import gspread  # Access and edit Google Sheets by gspread
@@ -10,13 +11,14 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from .variables import *
+from variables import *
 from typing import Sequence
 
 
 path = os.path.dirname(__file__)
 
-def authenticate(file: str ='../files/cpm_creds.json'):
+
+def authenticate(file: str = "../files/cpm_creds.json"):
     """
     Read the json file from google API and authenticate the access to the Google Sheets
 
@@ -27,16 +29,20 @@ def authenticate(file: str ='../files/cpm_creds.json'):
     The object to access the Spreadsheets
     """
 
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
 
     # Configurations necessary to gspread to work
     credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        os.path.join(path, file), scope)
+        os.path.join(path, file), scope
+    )
 
     gc = gspread.authorize(credentials)
 
     return gc
+
 
 def load_workbooks_from_drive():
     """
@@ -56,7 +62,8 @@ def load_workbooks_from_drive():
 
     return planilhas
 
-def load_sheet_from_drive(title: str)-> gspread.Spreadsheet:
+
+def load_sheet_from_drive(title: str) -> gspread.Spreadsheet:
     """Load Spreadsheet object of name <title> 
     
     Args:
@@ -74,9 +81,12 @@ def load_sheet_from_drive(title: str)-> gspread.Spreadsheet:
     try:
         sh = gc.open(title=title)
     except gspread.SpreadsheetNotFound as e:
-        raise ValueError(f"The Google Sheet {title} not found or not shared with this user. Check your Drive") from e
+        raise ValueError(
+            f"The Google Sheet {title} not found or not shared with this user. Check your Drive"
+        ) from e
 
     return sh
+
 
 def load_wb_from_sheet(title: str, aba: str):
     """Load Workbook <aba> from Spreadsheet <title>
@@ -90,17 +100,26 @@ def load_wb_from_sheet(title: str, aba: str):
     Returns:
         gspread.Worksheet: The Google Worksheet object
     """
-    
+
     sh = load_sheet_from_drive(title=title)
 
     try:
         aba = sh.worksheet(title=aba)
     except gspread.WorksheetNotFound as e:
-        raise ValueError(f"A aba {aba} não foi encontrada na planilha {title}. Verifique o seu drive") from e
-    
+        raise ValueError(
+            f"A aba {aba} não foi encontrada na planilha {title}. Verifique o seu drive"
+        ) from e
+
     return aba
 
-def load_df_from_sheet(title: str,aba: str, col_names: Sequence=None, skiprows: Sequence=None, na_values:Sequence=""):
+
+def load_df_from_sheet(
+    title: str,
+    aba: str,
+    col_names: Sequence = None,
+    skiprows: Sequence = None,
+    **kwargs,
+):
     """Load Workbook <aba> from Spreadsheet <title> and returns it as a Dataframe
     
     Args:
@@ -112,24 +131,28 @@ def load_df_from_sheet(title: str,aba: str, col_names: Sequence=None, skiprows: 
     Returns:
         pandas.DataFrame: The Google Worksheet as a DataFrame
     """
-    
+
     aba = load_wb_from_sheet(title=title, aba=aba)
 
     df = gs_to_df.get_as_dataframe(
-        aba, evaluate_formulas=True,
+        aba,
+        evaluate_formulas=True,
         parse_dates=True,
-        skiprows=skiprows, dtype=str,
-        ignore=False, na_values=na_values)
+        skiprows=skiprows,
+        dtype=str,
+        **kwargs,
+    )
 
     if col_names is not None:
         l1, l2 = len(col_names), len(df.columns)
-        
-        assert l1 == l2, f"There is a mismatch between the len(col_names): {l1} and the len(columns): {l2} in the DataFrame"
+
+        assert (
+            l1 == l2
+        ), f"There is a mismatch between the len(col_names): {l1} and the len(columns): {l2} in the DataFrame"
         df.columns = col_names
 
-
-
     return df.dropna(axis=0, how="all")
+
 
 def load_turmas(semestre=None):
 
@@ -137,11 +160,21 @@ def load_turmas(semestre=None):
 
     if semestre is None:
 
-        return {x.split('_')[-1]: sheets[x] for x in TURMAS}
+        return {x.split("_")[-1]: sheets[x] for x in TURMAS}
 
-    return {k.split('_')[-1]: v  for k,v in sheets.items() if semestre in k}
+    return {k.split("_")[-1]: v for k, v in sheets.items() if semestre in k}
 
-def salva_aba_no_drive(dataframe, planilha_drive, aba_drive, row=2, col=1, header=False, resize=False, clear=False):
+
+def salva_aba_no_drive(
+    dataframe,
+    planilha_drive,
+    aba_drive,
+    row=2,
+    col=1,
+    header=False,
+    resize=False,
+    clear=False,
+):
 
     if isinstance(planilha_drive, gspread.models.Worksheet):
 
@@ -153,15 +186,18 @@ def salva_aba_no_drive(dataframe, planilha_drive, aba_drive, row=2, col=1, heade
 
     worksheet = workbook.worksheet(aba_drive)
 
-    if clear: worksheet.clear()
+    if clear:
+        worksheet.clear()
 
+    gs_to_df.set_with_dataframe(
+        dataframe=dataframe,
+        worksheet=worksheet,
+        row=row,
+        col=col,
+        include_column_header=header,
+        resize=resize,
+    )
 
-    gs_to_df.set_with_dataframe(dataframe=dataframe,
-                                worksheet=worksheet,
-                                row=row,
-                                col=col,
-                                include_column_header=header,
-                                resize=resize)
 
 def nomeia_cols_lista(df):
 
@@ -183,45 +219,65 @@ def nomeia_cols_lista(df):
 
     return df
 
+def carrega_lista(turma: Sequence)-> pd.DataFrame:
+    """Carrega a aba <Lista de Presença> da planilha Google `turma` e a retorna como DataFrame
+    
+    Args:
+        turma (Sequence): Título da Planilha Google
+    
+    Returns:
+        pd.DataFrame: Aba Lista de Presença como DataFrame
+    """
+    if turma not in TURMAS:
+        for t in TURMAS:
+            if turma in t:
+                turma = t
+        else:
+            raise ValueError(f"Não existe planilha de Feedback com o título {turma}")
+
+    df = load_df_from_sheet(
+            turma, "Lista de Presença", col_names=LISTA, skiprows=[1, 2], na_values=[""]
+        ).fillna("")
+
+    df = df[~df["Nome"].isnull()]
+
+    df["Turma"] = turma.split("_")[-1]
+
+    df.drop("Qte", axis=1, inplace=True)
+
+    df = df.set_index("Código")
+
+    return df
+
 def carrega_listas(turmas=None):
 
     if turmas is None:
         turmas = TURMAS
 
-    listas = pd.DataFrame(columns=LISTA)  
+    listas = [carrega_lista(turma) for turma in turmas]  # pd.DataFrame(columns=LISTA)
 
-    for turma in turmas:
+    return pd.concat(listas)
 
-        df = load_df_from_sheet(turma, 'Lista de Presença',
-                                             col_names=LISTA, skiprows=[1, 2], na_values="")
-
-        df = df[df.Nome != 'nan']
-
-        df.Turma = turma.split("_")[-1] 
-
-        listas.append(df, ignore_index=True)
-
-    return listas
 
 def checa_presença(aula, lista):
 
     aula = list(aula)
 
-    filtro = (lista.Nome != "")
+    filtro = lista.Nome != ""
 
     print(lista.aula.notnull().any().any())
 
+
 def relatorio_alunos():
 
-    #relatorio = pd.DataFrame(columns=)
+    # relatorio = pd.DataFrame(columns=)
 
-    listas = {k:v[1] for k,v in carrega_listas()}
+    listas = {k: v[1] for k, v in carrega_listas()}
 
     for turma, lista in listas.items():
         rule = (lista.Nome != "") & (lista.Total_Presença < 0.3)
         lista["Turma"] = turma
-        relatorio = relatorio.append(lista.loc[rule, ["Turma", "Nome", "Total_Presença"]])
-
-
-
+        relatorio = relatorio.append(
+            lista.loc[rule, ["Turma", "Nome", "Total_Presença"]]
+        )
 

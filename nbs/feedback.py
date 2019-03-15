@@ -38,64 +38,22 @@ turmas = f.load_turmas()
 
 listas = f.carrega_listas()
 
-# +
-listas = pd.DataFrame(columns=LISTA + ["Turma"])  
+listas.tail()
 
-for turma in TURMAS:
+listas.columns
 
-    df = f.load_df_from_sheet(turma, 'Lista de Presença',
-                                         col_names=LISTA, skiprows=[1, 2], na_values=[""])
+presenca = listas[["Turma", "Nome", "P4", "HW4", "SPK1"]]
 
-    df = df[df.Nome != 'nan']
-
-    df.Turma = turma.split("_")[-1] 
-
-    listas.append(df, ignore_index=True)
-
-    display(listas.head())
-
-    break
-# -
-
-df.head()
+presenca[presenca["P4"].isnull()]
 
 # +
-def carrega_planilhas_presença():
+desist = (~listas.Desistência.isnull()) & (listas.Presença != '0')
+obs = listas.Obs.isnull()
 
-    planilhas_de_presença = {}
-    
-    for nome, turma in turmas.items():
-
-        sh, df = f.load_sheet_from_workbook(turma, 'Lista de Presença', skiprows=[1,2])
-
-        df = f.nomeia_cols_lista(df)
-        
-        lista = pd.DataFrame(columns=df.columns)
-
-        registros = sh.get_all_values()
-
-        for reg in registros[3:]:
-
-            aluno = {k:v for k,v in zip(df.columns, reg)}
-
-            lista = lista.append(aluno, ignore_index=True)
-            
-        #lista = f.nomeia_cols_lista(lista)
-
-        planilhas_de_presença[nome.split("_")[-1]] = (sh, df)
-        
-    return planilhas_de_presença
-        
-planilhas_de_presença = carrega_planilhas_presença()
+listas.loc[(desist & obs), ["Turma", "Nome", "Presença", "Obs"]]
 # -
 
-def corrige_preenchimento(sh, df, start, end):    
-
-    gs_df.set_with_dataframe(worksheet=sh,
-                             dataframe=df.iloc[:, start:end], 
-                             row=4, 
-                             col=8,
-                             include_column_header=False)
+listas.loc[listas.Evasão == "Sim",["Turma", "Nome", "Presença"]]
 
 # +
 def preenche_lacunas(planilhas_de_presença):

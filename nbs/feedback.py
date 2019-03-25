@@ -19,9 +19,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname('__file__'), '..
 
 import pandas as pd
 
+from cpm.variables import *
+
 import cpm.functions as f
 
-from cpm.variables import *
+import cpm.agenda as a
 
 import gspread
 
@@ -34,17 +36,40 @@ from IPython.display import display
 # %autoreload 2
 # -
 
+# ## Carrega Planilhas
+
 turmas = f.load_turmas()
 
-listas = f.carrega_listas()
+alocação = f.load_df_from_sheet(ALOCACAO, "Agenda", col_names=COLS_AGENDA + ["Presente"])
 
-listas.tail()
+alocação.iloc[235]
+
+listas = f.carrega_listas() ; listas = listas[listas.Nome != ""]
 
 listas.columns
 
-presenca = listas[["Turma", "Nome", "P4", "HW4", "SPK1"]]
+listas.head()
 
-presenca[presenca["P4"].isnull()]
+# ## Define Aula a ser verificada e Filtra Lista de Presença
+
+n, p, hw, cp = '2', "P2", "HW2", "CP2"
+
+aula = listas[["Turma", "Nome", p, hw, cp]]
+aula.tail()
+
+# ## Analisa preenchimento de Aula
+
+turmas = {}
+for t in TURMAS:
+    turmas[t] = aula[aula.Turma == t]    
+
+# ### Presença em Branco 
+
+for turma, df in turmas.items():
+    display(df)  
+        #display(alocação[alocação["Aula"] == n])
+
+alocação.columns
 
 # +
 desist = (~listas.Desistência.isnull()) & (listas.Presença != '0')

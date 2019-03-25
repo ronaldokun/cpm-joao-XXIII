@@ -1,6 +1,6 @@
 import sys, os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
 
 import datetime as dt
 import gspread  # Access and edit Google Sheets by gspread
@@ -11,7 +11,7 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from variables import *
+from .variables import *
 from typing import Sequence
 
 
@@ -118,6 +118,10 @@ def load_df_from_sheet(
     aba: str,
     col_names: Sequence = None,
     skiprows: Sequence = None,
+    parse_dates=True,
+    evaluate_formulas=True,
+    na_values="",
+    keep_default_na=False,
     **kwargs,
 ):
     """Load Workbook <aba> from Spreadsheet <title> and returns it as a Dataframe
@@ -134,24 +138,34 @@ def load_df_from_sheet(
 
     aba = load_wb_from_sheet(title=title, aba=aba)
 
-    df = gs_to_df.get_as_dataframe(
-        aba,
-        evaluate_formulas=True,
-        parse_dates=True,
-        skiprows=skiprows,
-        dtype=str,
-        **kwargs,
-    )
+    if col_names is None:
+        df = gs_to_df.get_as_dataframe(
+            aba,
+            header=0,
+            skiprows=skiprows,
+            evaluate_formulas=evaluate_formulas,
+            parse_dates=parse_dates,
+            na_values=na_values,
+            keep_default_na=keep_default_na,
+            dtype=str,
+            **kwargs,
+        )
 
-    if col_names is not None:
-        l1, l2 = len(col_names), len(df.columns)
+    else:
 
-        assert (
-            l1 == l2
-        ), f"There is a mismatch between the len(col_names): {l1} and the len(columns): {l2} in the DataFrame"
-        df.columns = col_names
+        df = gs_to_df.get_as_dataframe(
+            aba,
+            names=col_names,
+            skiprows=skiprows,
+            evaluate_formulas=evaluate_formulas,
+            parse_dates=parse_dates,
+            na_values=na_values,
+            keep_default_na=keep_default_na,
+            dtype=str,
+            **kwargs,
+        )
 
-    return df.dropna(axis=0, how="all")
+    return df  # .dropna(axis=0, how="all")
 
 
 def load_turmas(semestre=None):
@@ -160,7 +174,7 @@ def load_turmas(semestre=None):
 
     if semestre is None:
 
-        return {x.split("_")[-1]: sheets[x] for x in TURMAS}
+        return {x.split("_")[-1]: sheets[x] for x in FEEDBACKS}
 
     return {k.split("_")[-1]: v for k, v in sheets.items() if semestre in k}
 
@@ -219,7 +233,8 @@ def nomeia_cols_lista(df):
 
     return df
 
-def carrega_lista(turma: Sequence)-> pd.DataFrame:
+
+def carrega_lista(turma: Sequence) -> pd.DataFrame:
     """Carrega a aba <Lista de Presença> da planilha Google `turma` e a retorna como DataFrame
     
     Args:
@@ -228,16 +243,16 @@ def carrega_lista(turma: Sequence)-> pd.DataFrame:
     Returns:
         pd.DataFrame: Aba Lista de Presença como DataFrame
     """
-    if turma not in TURMAS:
-        for t in TURMAS:
+    if turma not in FEEDBACKS:
+        for t in FEEDBACKS:
             if turma in t:
                 turma = t
         else:
             raise ValueError(f"Não existe planilha de Feedback com o título {turma}")
 
     df = load_df_from_sheet(
-            turma, "Lista de Presença", col_names=LISTA, skiprows=[1, 2], na_values=[""]
-        ).fillna("")
+        turma, "Lista de Presença", col_names=LISTA, skiprows=[1, 2], na_values=[""]
+    ).fillna("")
 
     df = df[~df["Nome"].isnull()]
 
@@ -249,10 +264,11 @@ def carrega_lista(turma: Sequence)-> pd.DataFrame:
 
     return df
 
+
 def carrega_listas(turmas=None):
 
     if turmas is None:
-        turmas = TURMAS
+        turmas = FEEDBACKS
 
     listas = [carrega_lista(turma) for turma in turmas]  # pd.DataFrame(columns=LISTA)
 

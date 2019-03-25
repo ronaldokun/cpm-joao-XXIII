@@ -1,5 +1,6 @@
 import os, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname('__file__'), '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
 
 import pandas as pd
 import datetime as dt
@@ -7,18 +8,18 @@ from cpm import functions as f
 from cpm import variables as v
 
 
-def carrega_alocacao()-> dict: 
+def carrega_alocacao() -> dict:
     """Carrega as planilhas de alocação de voluntários e retorna como um DataFrame
     
     Returns:
         dict: pandas.DataFrame -- Alocacação Consolidada das Turmas
     """
     aloc = {}
-    
-    for turma in v.TURMAS:
-        
-        aloc[turma.split("_")[-1]] = f.load_df_from_sheet(turma, v.ABA_ALOC)
-        
+
+    for turma, planilha in zip(v.TURMAS, v.FEEDBACKS):
+
+        aloc[turma] = f.load_df_from_sheet(planilha, v.ABA_ALOC)
+
     aloc["EA"] = f.load_df_from_sheet(v.ALOCACAO, v.ABA_ALOC_EAS)
 
     alocacao = pd.DataFrame(columns=v.COLS_ALOCACAO)
@@ -33,7 +34,7 @@ def carrega_alocacao()-> dict:
 
             dict_aloc["Aula"] = line.Aula
             dict_aloc["Data"] = line.Data
-            dict_aloc['Turma'] = k
+            dict_aloc["Turma"] = k
 
             for nome in line[3:]:
 
@@ -49,7 +50,8 @@ def carrega_alocacao()-> dict:
 
     return alocacao
 
-def carrega_voluntarios()-> pd.DataFrame:
+
+def carrega_voluntarios() -> pd.DataFrame:
     """Carrega as informações dos voluntários do CPM, tanto Teachers quanto EAS;.
     
     Returns:
@@ -62,6 +64,7 @@ def carrega_voluntarios()-> pd.DataFrame:
 
     return teachers.append(eas)
 
+
 def consolida_teachers(dict_teachers):
 
     teachers = pd.DataFrame(columns=COLS_TEACHERS)
@@ -72,7 +75,7 @@ def consolida_teachers(dict_teachers):
 
         df = df[COLS_TEACHERS]
 
-        #df = df.assign(Turma=df.shape[0] * [k.split("_")[-1]])
+        # df = df.assign(Turma=df.shape[0] * [k.split("_")[-1]])
 
         teachers = teachers.append(df)
 
@@ -82,13 +85,17 @@ def consolida_teachers(dict_teachers):
 
     return teachers
 
+
 def transform_date(date, str_format="%B %d, %Y"):
 
     return dt.datetime.strptime(str(date), str_format).date()
 
+
 def cria_agenda(alocacao, voluntarios):
 
-    agenda = pd.merge(alocacao, voluntarios) #, on="Nome").dropna().drop(["Turma_y", "#Aulas"], axis=1)
+    agenda = pd.merge(
+        alocacao, voluntarios
+    )  # , on="Nome").dropna().drop(["Turma_y", "#Aulas"], axis=1)
 
     agenda = agenda[v.COLS_AGENDA]
 

@@ -15,7 +15,11 @@
 
 # +
 import os, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname('__file__'), '..')))
+
+path = os.path.abspath(os.path.join(os.path.dirname('__file__'), '..'))
+sys.path.insert(0, path)
+
+os.chdir(path)
 
 import pandas as pd
 
@@ -42,20 +46,44 @@ turmas = f.load_turmas()
 
 alocação = f.load_df_from_sheet(ALOCACAO, "Agenda", col_names=COLS_AGENDA + ["Presente"])
 
-alocação.iloc[235]
+alocação.head()
 
-listas = f.carrega_listas() ; listas = listas[listas.Nome != ""]
+listas = f.carrega_listas()
+listas.head()
 
-listas.columns
+listas = listas[listas.Evasão == "Não"]
+listas = listas[listas.Desistência == ""]
+listas = listas[listas.Obs == ""]
 
 listas.head()
 
 # ## Define Aula a ser verificada e Filtra Lista de Presença
 
-n, p, hw, cp = '2', "P2", "HW2", "CP2"
+def checa_coluna(lista: pd.DataFrame,  coluna: str)-> bool:
+    return sum(lista[coluna] == "") > 0 
 
-aula = listas[["Turma", "Nome", p, hw, cp]]
-aula.tail()
+def checa_aula(lista: pd.DataFrame, aula: tuple)-> bool:
+    check = 0
+    for col in aula:
+        if "SPK" not in col:
+            check += int(checa_coluna(lista, col))
+    return not bool(check)
+
+for turma in TURMAS:
+    df = listas[listas.Turma == turma]
+    for i, aula in enumerate(AULAS[:10]):
+        if not checa_aula(df, aula):
+            #display(alocação[alocação.Aula == str(i + 1)])
+            display(df[["Nome", "Turma"] + list(aula)])
+
+alocação[alocação.Aula == "1"]
+
+for t in TURMAS:
+    df = listas[listas.Turma ==t]
+    if checa_coluna(listas[listas.Turma ==t], p):
+        display(df[["Turma", "Nome", p]])
+
+listas[listas.Turma == "A2"]
 
 # ## Analisa preenchimento de Aula
 
@@ -65,11 +93,17 @@ for t in TURMAS:
 
 # ### Presença em Branco 
 
-for turma, df in turmas.items():
-    display(df)  
+for df in turmas.values():
+    print(df[p] == False)  
         #display(alocação[alocação["Aula"] == n])
 
-alocação.columns
+df.p
+
+# +
+labels = ["B1", "D1", "F1", "Teens2"]
+
+for t in labels:
+    display(alocação[alocação.Turma == t])
 
 # +
 desist = (~listas.Desistência.isnull()) & (listas.Presença != '0')

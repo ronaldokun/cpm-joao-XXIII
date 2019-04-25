@@ -1,7 +1,7 @@
 import sys
 
 import functions
-from cpm.variables import *
+from variables import *
 import agenda
 
 def main(aula, row):

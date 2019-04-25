@@ -11,8 +11,8 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from .variables import *
-from typing import Sequence
+from cpm.variables import *
+from typing import Sequence, Union
 
 
 path = os.path.dirname(__file__)
@@ -190,7 +190,7 @@ def salva_aba_no_drive(
     clear=False,
 ):
 
-    if isinstance(planilha_drive, gspread.models.Worksheet):
+    if isinstance(planilha_drive, gspread.models.Spreadsheet):
 
         workbook = planilha_drive
 
@@ -211,6 +211,16 @@ def salva_aba_no_drive(
         include_column_header=header,
         resize=resize,
     )
+
+
+def atualizar_coluna_df(
+    df: pd.DataFrame,
+    sheet: Union[str, gspread.Spreadsheet],
+    aba: str,
+    row: int,
+    col: int,
+):
+    salva_aba_no_drive(df, sheet, aba, row, col)
 
 
 def nomeia_cols_lista(df):
@@ -254,13 +264,13 @@ def carrega_lista(turma: Sequence) -> pd.DataFrame:
         turma, "Lista de Presença", col_names=LISTA, skiprows=[1, 2], na_values=[""]
     ).fillna("")
 
-    df = df[~df["Nome"].isnull()]
+    df = df[df["Nome"] != ""]
 
     df["Turma"] = turma.split("_")[-1]
 
     df.drop("Qte", axis=1, inplace=True)
 
-    df = df.set_index("Código")
+    # df = df.set_index("Código")
 
     return df
 
@@ -272,7 +282,11 @@ def carrega_listas(turmas=None):
 
     listas = [carrega_lista(turma) for turma in turmas]  # pd.DataFrame(columns=LISTA)
 
-    return pd.concat(listas)
+    listas = pd.concat(listas).set_index("Código")
+
+    listas = listas.drop("Código", axis=0)
+
+    return listas
 
 
 def checa_presença(aula, lista):

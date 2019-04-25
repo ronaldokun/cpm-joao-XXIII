@@ -62,8 +62,8 @@ COLS_ALOCACAO = ["Data", "Aula", "Nome"]
 COLS_AGENDA = [
     "Data",
     "Aula",
-    "Nome",
     "Turma",
+    "Nome",
     "Telefone",
     "Email Pessoal",
     "Email CPM",
@@ -131,6 +131,25 @@ LISTA = [
     "Total_Homework",
     "Nota_Participacao",
     "Nota_Speaking",
+]
+
+AULAS = [
+    ("P1",),
+    ("P2", "HW2", "CP2"),
+    ("P3", "HW3", "CP3"),
+    ("P4", "HW4", "SPK1"),
+    ("P5", "HW5", "CP5"),
+    ("P6", "HW6", "CP6"),
+    ("P7", "HW7", "SPK2"),
+    ("Nota_Mid", "P8"),
+    ("P9", "HW9", "CP9"),
+    ("P10", "HW10", "CP10"),
+    ("P11", "HW11", "CP11"),
+    ("P12", "HW12", "SPK3"),
+    ("P13", "HW13", "CP13"),
+    ("P14", "HW14", "CP14"),
+    ("P15", "HW15", "SPK4"),
+    ("Nota_Final", "P16"),
 ]
 
 COLUNAS = [

@@ -1,6 +1,8 @@
 import sys, os
 
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
+
+path = os.path.dirname("__file__")
+sys.path.insert(0, os.path.abspath(os.path.join(path, "..")))
 
 import datetime as dt
 import gspread  # Access and edit Google Sheets by gspread
@@ -15,10 +17,7 @@ from cpm.variables import *
 from typing import Sequence, Union
 
 
-path = os.path.dirname(__file__)
-
-
-def authenticate(file: str = "../files/cpm_creds.json"):
+def authenticate(file: str = "files/cpm_creds.json"):
     """
     Read the json file from google API and authenticate the access to the Google Sheets
 
@@ -116,7 +115,8 @@ def load_wb_from_sheet(title: str, aba: str):
 def load_df_from_sheet(
     title: str,
     aba: str,
-    col_names: Sequence = None,
+    names: Sequence = None,
+    index_col=None,
     skiprows: Sequence = None,
     parse_dates=True,
     evaluate_formulas=True,
@@ -138,10 +138,11 @@ def load_df_from_sheet(
 
     aba = load_wb_from_sheet(title=title, aba=aba)
 
-    if col_names is None:
+    if names is None:
         df = gs_to_df.get_as_dataframe(
             aba,
             header=0,
+            index_col=index_col,
             skiprows=skiprows,
             evaluate_formulas=evaluate_formulas,
             parse_dates=parse_dates,
@@ -155,7 +156,9 @@ def load_df_from_sheet(
 
         df = gs_to_df.get_as_dataframe(
             aba,
-            names=col_names,
+            header=None,
+            names=names,
+            index_col=index_col,
             skiprows=skiprows,
             evaluate_formulas=evaluate_formulas,
             parse_dates=parse_dates,
@@ -244,7 +247,7 @@ def nomeia_cols_lista(df):
     return df
 
 
-def carrega_lista(turma: Sequence) -> pd.DataFrame:
+def carrega_lista(turma: str) -> pd.DataFrame:
     """Carrega a aba <Lista de Presença> da planilha Google `turma` e a retorna como DataFrame
     
     Args:
@@ -257,11 +260,12 @@ def carrega_lista(turma: Sequence) -> pd.DataFrame:
         for t in FEEDBACKS:
             if turma in t:
                 turma = t
+                break
         else:
             raise ValueError(f"Não existe planilha de Feedback com o título {turma}")
 
     df = load_df_from_sheet(
-        turma, "Lista de Presença", col_names=LISTA, skiprows=[1, 2], na_values=[""]
+        turma, "Lista de Presença", names=LISTA, skiprows=[1, 2], na_values=[""]
     ).fillna("")
 
     df = df[df["Nome"] != ""]
@@ -287,6 +291,52 @@ def carrega_listas(turmas=None):
     listas = listas.drop("Código", axis=0)
 
     return listas
+
+
+def notas_turma(turma: str) -> pd.DataFrame:
+    """Carrega a aba <Lista de Presença> da planilha Google `turma` e a retorna como DataFrame
+    
+    Args:
+        turma (Sequence): Título da Planilha Google
+    
+    Returns:
+        pd.DataFrame: Aba Lista de Presença como DataFrame
+    """
+    if turma not in FEEDBACKS:
+        for t in FEEDBACKS:
+            if turma in t:
+                turma = t
+                break
+        else:
+            raise ValueError(f"Não existe planilha de Feedback com o título {turma}")
+
+    df = load_df_from_sheet(
+        turma, "Grades", names=GRADES, skiprows=[0], na_values=[""]
+    ).fillna("")
+
+    df = df[df["Nome_Completo"] != ""]
+
+    df["Turma"] = turma.split("_")[-1]
+
+    # df.drop("Qte", axis=1, inplace=True)
+
+    df = df.reset_index()
+
+    return df
+
+
+def carrega_notas(turmas: Sequence = None):
+
+    if turmas is None:
+        turmas = FEEDBACKS
+
+    notas = [notas_turma(turma) for turma in turmas]
+
+    notas = pd.concat(notas)  # .set_index("Nome_Completo")
+
+    # notas = notas.drop("Código", axis=0)
+
+    return notas
 
 
 def checa_presença(aula, lista):

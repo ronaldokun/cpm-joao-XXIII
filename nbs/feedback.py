@@ -8,9 +8,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 0.8.6
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python [conda env:cpm]
 #     language: python
-#     name: python3
+#     name: conda-env-cpm-py
 # ---
 
 # +
@@ -19,7 +19,7 @@ import os, sys
 path = os.path.abspath(os.path.join(os.path.dirname('__file__'), '..'))
 sys.path.insert(0, path)
 
-os.chdir(path)
+os.chdir("/home/ronaldo/projects/programming/cpm/")
 
 import pandas as pd
 
@@ -42,7 +42,17 @@ from IPython.display import display
 
 # ## Carrega Planilhas
 
-turmas = f.load_turmas()
+turmas = f.load_turmas("2019_2S")
+
+# +
+exp = "\'\"&turma&\"\'"
+value = fr'=query(IMPORTRANGE(link_alunos, range_alunos), "select Col2,Col3,Col4,Col6,Col9,Col10,Col11,Col12,Col13,Col14, Col15 where Col1 = {exp}")'
+
+for name, sh in turmas.items():
+    print(name)
+    wb = f.load_wb_from_sheet(sh.title, "Info_Students")
+    wb.update_cell(1, 1, value)    
+# -
 
 alocação = f.load_df_from_sheet(ALOCACAO, "Agenda", col_names=COLS_AGENDA + ["Presente"])
 
@@ -71,7 +81,7 @@ def checa_aula(lista: pd.DataFrame, aula: tuple)-> bool:
 
 for turma in TURMAS:
     df = listas[listas.Turma == turma]
-    for i, aula in enumerate(AULAS[:10]):
+    for i, aula in enumerate(AULAS[10:11]):
         if not checa_aula(df, aula):
             #display(alocação[alocação.Aula == str(i + 1)])
             display(df[["Nome", "Turma"] + list(aula)])

@@ -52,15 +52,27 @@ turmas = f.load_turmas()
 
 turmas
 
+# +
 for title, sh in turmas.items():    
     print(title)
-    wb = f.load_sheet_from_workbook(sh, "Class 15 Review & Speaking")[0]
-    wb.update_cell(3,2, r"='Parâmetros'!$A$15")
-    wb.update_cell(6,2, r"=Class_Plan!$F$13")
-while i < 421:
-    wb.update_cell(i, 1, fr"=image(Info_Students!$K${j})")
-    i += 18
-    j += 1
+    wb = sh.worksheet("Lista de Presença")
+    cells_1, cells_2 = wb.range("AP4:AP28"), wb.range("AQ4:AQ28")
+    cells = wb.range("AP4:AQ28")
+    for i, (c1, c2) in enumerate(zip(cells_1, cells_2), 4):
+        c1.value = fr'=if(AO{i}="Absent", "Undone", "")'
+        c2.value = fr'=if(AO{i}="Absent", 0, "")'
+    #wb.update_cell(3,2, r"='Parâmetros'!$A$14")
+    #wb.update_cell(6,2, r"=Class_Plan!$F$13")
+    wb.update_cells(cells_1, "USER_ENTERED")
+    wb.update_cells(cells_2, "USER_ENTERED")
+    
+#while i < 421:
+#    wb.update_cell(i, 1, fr"=image(Info_Students!$K${j})")
+#    i += 18
+#    j += 1
+# -
+
+
 
 
 config = planilhas['Configuração_Planilhas'].worksheet("Class_Plan")

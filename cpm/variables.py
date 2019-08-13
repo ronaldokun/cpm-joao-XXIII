@@ -186,3 +186,15 @@ COLUNAS = [
     "Student foi aprovado para o próximo nível?",
 ]
 
+GRADES = [
+    "Nome_Completo",
+    "Attendance",
+    "Homework",
+    "English_Usage",
+    "Speaking",
+    "Midterm",
+    "Final_Term",
+    "Extras",
+    "Final_Score",
+]
+

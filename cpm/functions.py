@@ -1,9 +1,3 @@
-import sys, os
-
-
-path = os.path.dirname("__file__")
-sys.path.insert(0, os.path.abspath(os.path.join(path, "..")))
-
 import datetime as dt
 import gspread  # Access and edit Google Sheets by gspread
 import pandas as pd
@@ -13,11 +7,11 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from cpm.variables import *
+from variables import *
 from typing import Sequence, Union
 
 
-def authenticate(file: str = "files/cpm_creds.json"):
+def authenticate(file: str = AUTH):
     """
     Read the json file from google API and authenticate the access to the Google Sheets
 
@@ -34,9 +28,7 @@ def authenticate(file: str = "files/cpm_creds.json"):
     ]
 
     # Configurations necessary to gspread to work
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        os.path.join(path, file), scope
-    )
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(file, scope)
 
     gc = gspread.authorize(credentials)
 

@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..
 
 import pandas as pd
 import datetime as dt
-from cpm import functions as f
-from cpm import variables as v
+import functions as f
+import variables as v
 
 
 def carrega_alocacao() -> dict:
@@ -44,7 +44,7 @@ def carrega_alocacao() -> dict:
 
                     alocacao = alocacao.append(dict_aloc, ignore_index=True)
 
-    alocacao["Data"] = alocacao["Data"].apply(transform_date)
+    alocacao["Data"] = alocacao["Data"].dropna().apply(transform_date)
 
     alocacao.sort_values(by=["Data", "Turma"], inplace=True)
 
@@ -86,7 +86,7 @@ def consolida_teachers(dict_teachers):
     return teachers
 
 
-def transform_date(date, str_format="%B %d, %Y"):
+def transform_date(date, str_format="%d/%m/%Y"):
 
     return dt.datetime.strptime(str(date), str_format).date()
 

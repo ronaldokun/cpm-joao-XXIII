@@ -6,20 +6,16 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.3'
-#       jupytext_version: 0.8.6
+#       jupytext_version: 1.0.5
 #   kernelspec:
-#     display_name: Python [conda env:cpm]
+#     display_name: Python 3
 #     language: python
-#     name: conda-env-cpm-py
+#     name: python3
 # ---
 
 # +
-import os, sys
+from context import cpm, drive
 
-path = os.path.abspath(os.path.join(os.path.dirname('__file__'), '..'))
-sys.path.insert(0, path)
-
-os.chdir("/home/ronaldo/projects/programming/cpm/")
 
 import pandas as pd
 
@@ -42,7 +38,59 @@ from IPython.display import display
 
 # ## Carrega Planilhas
 
-turmas = f.load_turmas("2019_2S")
+turmas = f.load_turmas("J23_2019_2S_Feedback")
+turmas
+
+# +
+datas = """Data
+04/08/2019
+18/08/2019
+25/08/2019
+01/09/2019
+15/09/2019
+22/09/2019
+29/09/2019
+06/10/2019
+20/10/2019
+27/10/2019
+03/11/2019
+10/11/2019
+24/11/2019
+01/12/2019
+08/12/2019
+15/12/2019""".split("\n")
+
+for name, sh in turmas.items():
+    print(name)    
+    wb = f.load_wb_from_sheet(sh.title, "Alocação")
+    
+    # Select a range
+    cell_list = wb.range('A1:A17')
+
+    for cell, value in zip(cell_list, datas):
+        cell.value = value
+
+    # Update in batch
+    wb.update_cells(cell_list)
+# -
+
+for name, sh in turmas.items():
+    print(name)    
+    wb = f.load_wb_from_sheet(sh.title, "Alocação")
+    
+    # Select a range
+    cell_list = wb.range('C3:C17')
+
+    for cell in cell_list:
+        cell.value = fr"='Parâmetros'!C{cell.row}"        
+
+    # Update in batch
+    wb.update_cells(cell_list, "USER_ENTERED")
+    
+    wb.update_acell("C2", "CANCELADO")
+
+sheets = f.load_workbooks_from_drive()
+sheets
 
 # +
 exp = "\'\"&turma&\"\'"

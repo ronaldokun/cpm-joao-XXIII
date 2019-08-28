@@ -7,7 +7,7 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from variables import *
+from variables import SHEETS, FEEDBACKS, LISTA, GRADES
 from typing import Sequence, Union
 
 

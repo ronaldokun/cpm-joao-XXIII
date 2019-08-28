@@ -7,7 +7,7 @@ import gspread_dataframe as gs_to_df
 from oauth2client.service_account import ServiceAccountCredentials
 from itertools import combinations
 import random
-from variables import SHEETS, FEEDBACKS, LISTA, GRADES
+from .variables import SHEETS, FEEDBACKS, LISTA
 from typing import Sequence, Union
 
 
@@ -303,7 +303,7 @@ def notas_turma(turma: str) -> pd.DataFrame:
             raise ValueError(f"Não existe planilha de Feedback com o título {turma}")
 
     df = load_df_from_sheet(
-        turma, "Grades", names=GRADES, skiprows=[0], na_values=[""]
+        turma, "Grades", names=None, skiprows=[0], na_values=[""]
     ).fillna("")
 
     df = df[df["Nome_Completo"] != ""]

@@ -6,4 +6,4 @@ sys.path.insert(0, ROOT)
 AUTH = f"{ROOT}/credentials/drive.json"
 
 
-import cpm
+import cpm, drive

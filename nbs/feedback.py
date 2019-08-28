@@ -5,16 +5,16 @@
 #     text_representation:
 #       extension: .py
 #       format_name: light
-#       format_version: '1.3'
-#       jupytext_version: 1.0.5
+#       format_version: '1.4'
+#       jupytext_version: 1.2.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python [conda env:cpm]
 #     language: python
-#     name: python3
+#     name: conda-env-cpm-py
 # ---
 
 # +
-from context import cpm, drive
+from context import cpm
 
 
 import pandas as pd
@@ -38,8 +38,13 @@ from IPython.display import display
 
 # ## Carrega Planilhas
 
-turmas = f.load_turmas("J23_2019_2S_Feedback")
-turmas
+# +
+#turmas = f.load_turmas("J23_2019_2S_Feedback")
+
+prefix = r"https://drive.google.com/open?id="
+
+for k,v in turmas.items():
+    print(k+"\t", prefix+v.id)
 
 # +
 datas = """Data

@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..
 
 import pandas as pd
 import datetime as dt
-import functions as f
-import variables as v
+import cpm.functions as f
+import cpm.variables as v
 
 
 def carrega_alocacao() -> dict:
@@ -18,7 +18,11 @@ def carrega_alocacao() -> dict:
 
     for turma, planilha in zip(v.TURMAS, v.FEEDBACKS):
 
+        print(f"Carregando Alocação: {turma}")
+
         aloc[turma] = f.load_df_from_sheet(planilha, v.ABA_ALOC)
+
+    print("Carregando Alocação: EA")
 
     aloc["EA"] = f.load_df_from_sheet(v.ALOCACAO, v.ABA_ALOC_EAS)
 
@@ -26,7 +30,7 @@ def carrega_alocacao() -> dict:
 
     for k, df in aloc.items():
 
-        print("Processing: ", k)
+        # print("Processing: ", k)
 
         dict_aloc = {}
 
@@ -47,6 +51,8 @@ def carrega_alocacao() -> dict:
     alocacao["Data"] = alocacao["Data"].dropna().apply(transform_date)
 
     alocacao.sort_values(by=["Data", "Turma"], inplace=True)
+
+    alocacao = alocacao.drop(axis=1, columns=["Turma"])
 
     return alocacao
 

@@ -11,7 +11,7 @@ from variables import *
 from typing import Sequence, Union
 
 
-def authenticate(file: str = AUTH):
+def authenticate(file: str = SHEETS):
     """
     Read the json file from google API and authenticate the access to the Google Sheets
 

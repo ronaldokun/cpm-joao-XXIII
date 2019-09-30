@@ -6,32 +6,25 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python [conda env:cpm]
 #     language: python
 #     name: conda-env-cpm-py
 # ---
 
-# +
-from context import cpm
-
-
 import pandas as pd
-
-from cpm.variables import *
-
-import cpm.functions as f
-
-import cpm.agenda as a
-
-import gspread
-
-import gspread_dataframe as gs_df
-
 from IPython.display import display
 
-# Every time we change a module they are reload before executing 
+import cpm.agenda as a
+import cpm.functions as f
+import gspread
+import gspread_dataframe as gs_df
+# +
+from context import cpm
+from cpm.variables import *
+
+# Every time we change a module they are reload before executing
 # %reload_ext autoreload
 # %autoreload 2
 # -
@@ -39,12 +32,33 @@ from IPython.display import display
 # ## Carrega Planilhas
 
 # +
-#turmas = f.load_turmas("J23_2019_2S_Feedback")
+turmas = f.load_turmas("J23_2019_2S_Feedback")
 
 prefix = r"https://drive.google.com/open?id="
 
-for k,v in turmas.items():
-    print(k+"\t", prefix+v.id)
+for k, v in turmas.items():
+    print(k + "\t", prefix + v.id)
+# -
+
+# ### Lista de Presença
+
+for name, sh in turmas.items():
+    # Carrega Lista de Presença
+    wb = f.load_wb_from_sheet(sh.title, "Lista de Presença")
+
+    nomes = wb.range("C4:C28")
+
+    # Select a range
+    situacao = wb.range("D4:D28")
+
+    for nome, sit in zip(nomes, situacao):
+        if nome.value != "" and sit.value == "":
+            sit.value = "Ativo"
+
+    # Update in batch
+    wb.update_cells(situacao)
+
+# ###
 
 # +
 datas = """Data
@@ -63,14 +77,16 @@ datas = """Data
 24/11/2019
 01/12/2019
 08/12/2019
-15/12/2019""".split("\n")
+15/12/2019""".split(
+    "\n"
+)
 
 for name, sh in turmas.items():
-    print(name)    
+    print(name)
     wb = f.load_wb_from_sheet(sh.title, "Alocação")
-    
+
     # Select a range
-    cell_list = wb.range('A1:A17')
+    cell_list = wb.range("A1:A17")
 
     for cell, value in zip(cell_list, datas):
         cell.value = value
@@ -80,34 +96,36 @@ for name, sh in turmas.items():
 # -
 
 for name, sh in turmas.items():
-    print(name)    
+    print(name)
     wb = f.load_wb_from_sheet(sh.title, "Alocação")
-    
+
     # Select a range
-    cell_list = wb.range('C3:C17')
+    cell_list = wb.range("C3:C17")
 
     for cell in cell_list:
-        cell.value = fr"='Parâmetros'!C{cell.row}"        
+        cell.value = fr"='Parâmetros'!C{cell.row}"
 
     # Update in batch
     wb.update_cells(cell_list, "USER_ENTERED")
-    
+
     wb.update_acell("C2", "CANCELADO")
 
 sheets = f.load_workbooks_from_drive()
 sheets
 
 # +
-exp = "\'\"&turma&\"\'"
+exp = "'\"&turma&\"'"
 value = fr'=query(IMPORTRANGE(link_alunos, range_alunos), "select Col2,Col3,Col4,Col6,Col9,Col10,Col11,Col12,Col13,Col14, Col15 where Col1 = {exp}")'
 
 for name, sh in turmas.items():
     print(name)
     wb = f.load_wb_from_sheet(sh.title, "Info_Students")
-    wb.update_cell(1, 1, value)    
+    wb.update_cell(1, 1, value)
 # -
 
-alocação = f.load_df_from_sheet(ALOCACAO, "Agenda", col_names=COLS_AGENDA + ["Presente"])
+alocação = f.load_df_from_sheet(
+    ALOCACAO, "Agenda", col_names=COLS_AGENDA + ["Presente"]
+)
 
 alocação.head()
 
@@ -122,28 +140,31 @@ listas.head()
 
 # ## Define Aula a ser verificada e Filtra Lista de Presença
 
-def checa_coluna(lista: pd.DataFrame,  coluna: str)-> bool:
-    return sum(lista[coluna] == "") > 0 
 
-def checa_aula(lista: pd.DataFrame, aula: tuple)-> bool:
+def checa_coluna(lista: pd.DataFrame, coluna: str) -> bool:
+    return sum(lista[coluna] == "") > 0
+
+
+def checa_aula(lista: pd.DataFrame, aula: tuple) -> bool:
     check = 0
     for col in aula:
         if "SPK" not in col:
             check += int(checa_coluna(lista, col))
     return not bool(check)
 
+
 for turma in TURMAS:
     df = listas[listas.Turma == turma]
     for i, aula in enumerate(AULAS[10:11]):
         if not checa_aula(df, aula):
-            #display(alocação[alocação.Aula == str(i + 1)])
+            # display(alocação[alocação.Aula == str(i + 1)])
             display(df[["Nome", "Turma"] + list(aula)])
 
 alocação[alocação.Aula == "1"]
 
 for t in TURMAS:
-    df = listas[listas.Turma ==t]
-    if checa_coluna(listas[listas.Turma ==t], p):
+    df = listas[listas.Turma == t]
+    if checa_coluna(listas[listas.Turma == t], p):
         display(df[["Turma", "Nome", p]])
 
 listas[listas.Turma == "A2"]
@@ -152,13 +173,13 @@ listas[listas.Turma == "A2"]
 
 turmas = {}
 for t in TURMAS:
-    turmas[t] = aula[aula.Turma == t]    
+    turmas[t] = aula[aula.Turma == t]
 
-# ### Presença em Branco 
+# ### Presença em Branco
 
 for df in turmas.values():
-    print(df[p] == False)  
-        #display(alocação[alocação["Aula"] == n])
+    print(df[p] == False)
+    # display(alocação[alocação["Aula"] == n])
 
 df.p
 
@@ -169,13 +190,13 @@ for t in labels:
     display(alocação[alocação.Turma == t])
 
 # +
-desist = (~listas.Desistência.isnull()) & (listas.Presença != '0')
+desist = (~listas.Desistência.isnull()) & (listas.Presença != "0")
 obs = listas.Obs.isnull()
 
 listas.loc[(desist & obs), ["Turma", "Nome", "Presença", "Obs"]]
 # -
 
-listas.loc[listas.Evasão == "Sim",["Turma", "Nome", "Presença"]]
+listas.loc[listas.Evasão == "Sim", ["Turma", "Nome", "Presença"]]
 
 # +
 def preenche_lacunas(planilhas_de_presença):
@@ -184,7 +205,7 @@ def preenche_lacunas(planilhas_de_presença):
 
         print("Processing: {}\n".format(k))
 
-        print(110*"=")
+        print(110 * "=")
 
         for item in f.AULAS:
 
@@ -192,41 +213,42 @@ def preenche_lacunas(planilhas_de_presença):
 
                 p, hw, cp = item
 
-                t1 = ((df[p] == "NO") & (df[hw] == ""))
+                t1 = (df[p] == "NO") & (df[hw] == "")
 
-                t2 = ((df[p] == "NO") & (df[cp] == ""))                
-                                
+                t2 = (df[p] == "NO") & (df[cp] == "")
+
                 if df.loc[t2].shape[0]:
-                    
+
                     display(df.loc[t2])
 
                 df.loc[t1, hw] = "N"
-                
+
                 if "SPK" in cp:
-                    
+
                     df.loc[t2, cp] = "0"
-                    
+
                 else:
 
                     df.loc[t2, cp] = "N/A"
-                    
+
                 df.loc[df[hw] == "+/-", hw] = "'+/-"
-                
+
                 df.loc[df[hw] == "½", hw] = "'+/-"
-                
+
                 df.loc[df[hw] == "1/2", hw] = "'+/-"
-        
-        #corrige_preenchimento(sh, df, 7, 32)
+
+        # corrige_preenchimento(sh, df, 7, 32)
+
 
 # +
 alunos = pd.DataFrame(columns=["Turma", "Nome", "P_15", "Nota_Final"])
 
 for k, (sh, df) in planilhas_de_presença.items():
     print(k)
-    p = ((df["P_15"] != "YES") & (df["Nome"] != ""))
+    p = (df["P_15"] != "YES") & (df["Nome"] != "")
     df["Turma"] = k
-    subset = df.loc[:, ["Nome", "P_15","Nota_Final", "Turma"]][p]
-    alunos = alunos.append(subset)    
+    subset = df.loc[:, ["Nome", "P_15", "Nota_Final", "Turma"]][p]
+    alunos = alunos.append(subset)
 # -
 
 # ### Checar Presença
@@ -243,20 +265,19 @@ for item in f.AULAS:
 
         p, hw, cp = item
 
-        t1 = ((df[p] == "NO") & (df[hw] == ""))
+        t1 = (df[p] == "NO") & (df[hw] == "")
 
-        t2 = ((df[p] == "YES") & (~df[hw].isin(["Y", "N", "+/-", "N/H"])))
+        t2 = (df[p] == "YES") & (~df[hw].isin(["Y", "N", "+/-", "N/H"]))
 
-        t3 = ((df[p] == "NO") & (df[cp] == ""))
+        t3 = (df[p] == "NO") & (df[cp] == "")
 
-        t4 = ((df[p] == "YES") & (~df[cp].isin(["A", "B", "C", "N/A"])))
-        
-        
+        t4 = (df[p] == "YES") & (~df[cp].isin(["A", "B", "C", "N/A"]))
+
         if df.loc[t1].shape[0]:
 
-            print('Falta sem nota de Homework\n')
+            print("Falta sem nota de Homework\n")
 
-            display(df.loc[t1, ["Nome",p,hw,cp]])
+            display(df.loc[t1, ["Nome", p, hw, cp]])
 
             df.loc[t1, hw] = "N/H"
 
@@ -264,7 +285,7 @@ for item in f.AULAS:
 
             print("Presença sem Nota de Homework\n")
 
-            display(df.loc[t2, ["Nome",p,hw,cp]])
+            display(df.loc[t2, ["Nome", p, hw, cp]])
 
             df.loc[t2, hw] = "Y"
 
@@ -272,31 +293,29 @@ for item in f.AULAS:
 
             print("Falta sem nota de Participação\n")
 
-            display(df.loc[t3, ["Nome",p,hw,cp]])
+            display(df.loc[t3, ["Nome", p, hw, cp]])
 
             if "SPK" not in cp:
 
                 df.loc[t3, cp] = "N/A"
-            
 
         if df.loc[t4].shape[0]:
 
             print("Presença sem nota de Participação")
 
-            display(df.loc[t4, ["Nome",p,hw,cp]])
+            display(df.loc[t4, ["Nome", p, hw, cp]])
 
             if "SPK" not in cp:
 
                 df.loc[t4, cp] = "A"
-                
 
-            
-#t5 = ((df['P_8'] == "") | (df['P_8'] == 'NO') & (df['Nota_Mid'] != '0.00'))
-              
-#t6 = ((df['P_15'] == "") | (df['P_15'] == 'NO') & (df['Nota_Final'] != '0.00'))
-                
-                
-#if df.loc[t5].shape[0]:
+
+# t5 = ((df['P_8'] == "") | (df['P_8'] == 'NO') & (df['Nota_Mid'] != '0.00'))
+
+# t6 = ((df['P_15'] == "") | (df['P_15'] == 'NO') & (df['Nota_Final'] != '0.00'))
+
+
+# if df.loc[t5].shape[0]:
 
 #    print(k)
 
@@ -304,7 +323,7 @@ for item in f.AULAS:
 
 #    df.loc[t5, ["P_8", "Nota_Mid"]] = ["NO", "0.00"]
 
-#if df.loc[t6].shape[0]:
+# if df.loc[t6].shape[0]:
 
 #    print(k)
 
@@ -316,25 +335,27 @@ df["Nota_Mid"] = df["Nota_Mid"].str.replace(",", ".")
 df["Nota_Final"] = df["Nota_Final"].str.replace(",", ".")
 
 
-corrige_preenchimento(sh, df, 7, 54)           
+corrige_preenchimento(sh, df, 7, 54)
 
 # +
 notas_dos_alunos = {}
 
 for nome, turma in turmas.items():
 
-    sh, df = f.load_sheet_from_workbook(turma, 'Notas dos Alunos', skiprows=[1,2,3,4])
-    
+    sh, df = f.load_sheet_from_workbook(
+        turma, "Notas dos Alunos", skiprows=[1, 2, 3, 4]
+    )
+
     display(df)
 
     lista = pd.DataFrame(columns=df.columns)
 
     registros = sh.get_all_values()
 
-    #lista = f.nomeia_cols_lista(lista)
+    # lista = f.nomeia_cols_lista(lista)
 
     notas_dos_alunos[nome.split("_")[-1]] = df
-    
+
     break
 
 # -
@@ -349,10 +370,10 @@ colunas_2 = colunas_1 + ["Turma"]
 notas_mid = pd.DataFrame(columns=colunas_2)
 
 for k, (sh, df) in iterator:
-    
+
     df["Turma"] = k
-        
-    notas_mid = notas_mid.append(df[df["Nome"] != ""][colunas_2])     
+
+    notas_mid = notas_mid.append(df[df["Nome"] != ""][colunas_2])
 # -
 
 notas_mid.to_csv("Relatorio_Mid.csv", index=False)
@@ -363,7 +384,7 @@ aula = "Aula 11"
 colunas = ["Nome", "Nota_Mid"]
 
 k, (sh, df) = next(iterator)
-    
+
 print("Processing: {}\n".format(k))
 
 filtro = (agenda["Aula"].str.contains(aula)) & (agenda["Turma"] == k)
@@ -372,7 +393,7 @@ professores = agenda[filtro]
 
 print("Professores: \n", professores[["Nome", "Email CPM", "Email Pessoal"]])
 
-criterio = (df["Nome"] != "")
+criterio = df["Nome"] != ""
 
 display(df[criterio][colunas])
 # -
@@ -390,7 +411,7 @@ for sh, wks in zip(planilhas, listas_de_presenças):
     presença[sh.title] = wks[1].range("Q4:S25")
 
 presença = {}
-for sh, wks in zip(planilhas, listas_de_presenças): 
+for sh, wks in zip(planilhas, listas_de_presenças):
     presença[sh.title] = wks[1]
 
 for plan in presença.values():
@@ -403,16 +424,18 @@ for key, value in presença.items():
         print(v.value)
     print("\n")
 
-desistencia = pd.DataFrame(columns = listas_de_presenças[0].columns)
+desistencia = pd.DataFrame(columns=listas_de_presenças[0].columns)
 for lista in listas_de_presenças:
-    desistencia = lista['Desistência'] == 'Sim'
-    print(lista[desistencia][['Código', 'NOME COMPLETO', "Desistência", "Evasão"]])
+    desistencia = lista["Desistência"] == "Sim"
+    print(lista[desistencia][["Código", "NOME COMPLETO", "Desistência", "Evasão"]])
 
 # +
 presença = []
 
 for lista in listas_de_presenças:
-    print("Planilha: {}, Coluna BC: {}".format(lista[0].title, lista[0].range("BC1:BC25")))        
+    print(
+        "Planilha: {}, Coluna BC: {}".format(lista[0].title, lista[0].range("BC1:BC25"))
+    )
 # -
 
 presença[0]
@@ -422,10 +445,10 @@ count = []
 
 for turma in presença:
     for i, aluno in enumerate(turma[0]):
-        if aluno.value == r'':
+        if aluno.value == r"":
             next
-        elif turma[1][i].value == r'0%':
-            count.append(aluno.value)            
+        elif turma[1][i].value == r"0%":
+            count.append(aluno.value)
 # -
 
 count
@@ -437,12 +460,10 @@ counts
 # #### Merge the Teachers Info from all Spreadsheets into one
 
 # +
-#for i in skills[0]:
+# for i in skills[0]:
 #    key = aula.cell(i, 1).value
 #    value = aula.cell(i, 2).value
 #    dict_[key] = value
-    
-#print(dict_exs)
+
+# print(dict_exs)
 # -
-
-

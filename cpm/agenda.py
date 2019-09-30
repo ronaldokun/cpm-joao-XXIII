@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.3'
+#       jupytext_version: 0.8.6
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
+
 import os, sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname("__file__"), "..")))
